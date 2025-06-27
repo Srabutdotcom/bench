@@ -2,7 +2,7 @@
 
 # Bench
 A simple and flexible benchmarking utility to measure execution time of synchronous and asynchronous functions with configurable warmup and repeat counts. Built for use in Deno or ESM environments.
-@version __VERSION__
+@version undefined
 
 
 ## Features
