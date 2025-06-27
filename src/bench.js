@@ -1,5 +1,5 @@
 //@ts-self-types="../type/bench.d.ts"
-import * as path from "jsr:@std/path"
+import * as path from "jsr:@std/path@1.1.0"
 
 function formatTime(ms) {
    return ms < 1
