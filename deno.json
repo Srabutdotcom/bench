@@ -1,0 +1,26 @@
+{
+  "name": "@aicone/bench",
+  "version": "0.0.0",
+  "exports": "./src/mod.ts",
+  "publish": {
+    "exclude": []
+  },
+  "tasks": {
+    "test": "deno test --allow-read",
+    "lint": "deno lint"
+  },
+  "lint": {
+    "include": [
+      "src/",
+      "type/"
+    ],
+    "rules": {
+      "exclude": [
+        "no-var",
+        "no-explicit-any",
+        "no-slow-types"
+      ]
+    }
+  },
+  "imports": {}
+}
