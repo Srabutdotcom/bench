@@ -67,7 +67,7 @@ function printBenchmarks(results, meta) {
 
    for (const r of results) {
       const line = [
-         r.name.slice(0,22).padEnd(22),
+         shortenName(r.name, 22),
          String(formatTime(r.avg)).padEnd(16),
          formatNumber(r.iterPerSec.toFixed(0)).padEnd(9),
          `(${formatTime(r.min)} … ${formatTime(r.max)})`.padEnd(23),
@@ -86,6 +86,15 @@ function printBenchmarks(results, meta) {
 }
 
 var formatNumber = (num) => new Intl.NumberFormat("en-US").format(num);
+
+function shortenName(name, max = 22) {
+   if (name.length <= max) return name.padEnd(max);
+
+   const suffix = name.slice(-4);        // last 4 characters
+   const prefixLen = max - 3 - 4;        // space for "..." and suffix
+   const prefix = name.slice(0, prefixLen);
+   return (prefix + "..." + suffix).padEnd(max);
+}
 
 class Bench {
    results = []
