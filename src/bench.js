@@ -15,20 +15,47 @@ function percentile(sorted, p) {
    return sorted[low] * (1 - weight) + sorted[high] * weight;
 }
 
-async function benchmark(name, fn, { warmup = 0, repeat = 50 } = {}) {
-   const timings = [];
+async function benchmark(name, fn, { warmup = 0, repeat = 1 } = {}) {
+   const isAsync = fn.constructor.name === "AsyncFunction";
+   if (isAsync) return await benchmarkAsync(name, fn, { warmup, repeat })
+   return benchmarkSync(name, fn, { warmup, repeat })
+}
 
+async function benchmarkAsync(name, fn, { warmup = 0, repeat = 1 } = {}) {
+   const timings = [];
+   let valid = false;
    // Warm-up run(s)
-   for (let i = 0; i < warmup; i++) await fn();
+   for (let i = 0; i < warmup; i++) valid ||= await fn();
 
    // Actual benchmark runs
    for (let i = 0; i < repeat; i++) {
       const t0 = performance.now();
-      await Promise.resolve(fn());
+      valid ||= await Promise.resolve(fn());
       const t1 = performance.now();
       timings.push(t1 - t0);
    }
 
+   return benchCore(name, timings)
+}
+
+function benchmarkSync(name, fn, { warmup = 0, repeat = 1 } = {}) {
+   const timings = [];
+   let valid = false;
+   // Warm-up run(s)
+   for (let i = 0; i < warmup; i++) valid ||= fn();
+
+   // Actual benchmark runs
+   for (let i = 0; i < repeat; i++) {
+      const t0 = performance.now();
+      valid ||= fn();
+      const t1 = performance.now();
+      timings.push(t1 - t0);
+   }
+
+   return benchCore(name, valid, timings)
+}
+
+function benchCore(name, valid, timings) {
    timings.sort((a, b) => a - b);
 
    const avg = timings.reduce((a, b) => a + b, 0) / timings.length;
@@ -42,6 +69,7 @@ async function benchmark(name, fn, { warmup = 0, repeat = 50 } = {}) {
 
    return {
       name,
+      valid,
       avg,
       iterPerSec,
       min,
@@ -56,21 +84,32 @@ function printBenchmarks(results, meta) {
    const parsed = path.parse(meta.filename);
    const folder = new URL('./bench/', meta.url)
    const filePath = new URL(`./bench/${parsed.name}.txt`, meta.url)
+
+   const GREEN = "\x1b[32m";
+   const RED = "\x1b[31m";
+   const BOLD = "\x1b[1m";
+   const RESET = "\x1b[0m";
+
    const lines = [];
    lines.push(`benchmark for ${parsed.base}`)
    lines.push(
-      `benchmark              time/iter (avg)  iter/s    (min … max)             p75      p99      p995`
+      `benchmark              valid time/iter (avg)  iter/s    (min … max)             p75      p99      p995`
    );
    lines.push(
-      `---------------------- ---------------- --------- ----------------------- -------- -------- --------`
+      `---------------------- ----- ---------------- --------- ----------------------- -------- -------- --------`
    );
 
    for (const r of results) {
+      const rawValid = r.valid ? "✓" : "✗";
+      const padded = rawValid.padEnd(5); // apply padding first
+      const styledValid = `${r.valid ? GREEN : RED}${BOLD}${padded}${RESET}`;
+
       const line = [
          shortenName(r.name, 22),
+         styledValid,
          String(formatTime(r.avg)).padEnd(16),
          formatNumber(r.iterPerSec.toFixed(0)).padEnd(9),
-         `(${formatTime(r.min)} … ${formatTime(r.max)})`.padEnd(23),
+         `(${formatTime(r.min)} … ${formatTime(r.max)})`.padEnd(22),
          formatTime(r.p75).padStart(8),
          formatTime(r.p99).padStart(8),
          formatTime(r.p995).padStart(8),
@@ -98,26 +137,26 @@ function shortenName(name, max = 22) {
 
 class Bench {
    results = []
-   constructor(meta){
+   constructor(meta) {
       this.meta = meta
    }
-   async bench(name, fn, { warmup = 0, repeat = 50 } = {}){
-      const o = await benchmark(name, fn, { warmup , repeat })
+   async bench(name, fn, { warmup = 0, repeat = 1 } = {}) {
+      const o = await benchmark(name, fn, { warmup, repeat })
       this.results.push(o)
    }
-   print(){
+   print() {
       printBenchmarks(this.results, this.meta)
    }
 }
 
 function ensureDirSync(path) {
    try {
-     Deno.mkdirSync(path, { recursive: true });
+      Deno.mkdirSync(path, { recursive: true });
    } catch (err) {
-     if (!(err instanceof Deno.errors.AlreadyExists)) {
-       throw err;
-     }
+      if (!(err instanceof Deno.errors.AlreadyExists)) {
+         throw err;
+      }
    }
- }
+}
 
 export { Bench }
