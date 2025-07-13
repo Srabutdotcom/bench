@@ -90,38 +90,41 @@ function printBenchmarks(results, meta) {
    const BOLD = "\x1b[1m";
    const RESET = "\x1b[0m";
 
-   const lines = [];
-   lines.push(`benchmark for ${parsed.base}`)
-   lines.push(
-      `benchmark              valid time/iter (avg)  iter/s    (min … max)             p75      p99      p995`
-   );
-   lines.push(
-      `---------------------- ----- ---------------- --------- ----------------------- -------- -------- --------`
-   );
+   const header = [
+      "benchmark              valid time/iter (avg)  iter/s    (min … max)             p75      p99      p995",
+      "---------------------- ----- ---------------- --------- ----------------------- -------- -------- --------",
+   ];
+
+   const linesColor = [`benchmark for ${parsed.base}`, ...header];
+   const linesPlain = [`benchmark for ${parsed.base}`, ...header];
 
    for (const r of results) {
       const rawValid = r.valid ? "✓" : "✗";
       const padded = rawValid.padEnd(5); // apply padding first
-      const styledValid = `${r.valid ? GREEN : RED}${BOLD}${padded}${RESET}`;
 
-      const line = [
+      const columns = [
          shortenName(r.name, 22),
-         styledValid,
+         padded,
          String(formatTime(r.avg)).padEnd(16),
          formatNumber(r.iterPerSec.toFixed(0)).padEnd(9),
          `(${formatTime(r.min)} … ${formatTime(r.max)})`.padEnd(22),
          formatTime(r.p75).padStart(8),
          formatTime(r.p99).padStart(8),
          formatTime(r.p995).padStart(8),
-      ].join(" ");
-      lines.push(line);
+      ];
+
+      linesColor.push([
+         columns[0],
+         r.valid ? `${BOLD}${GREEN}${columns[1]}${RESET}` : `${BOLD}${RED}${columns[1]}${RESET}`,
+         ...columns.slice(2),
+      ].join(" "));
+
+      linesPlain.push(columns.join(" "));
    }
 
-   const output = lines.join("\n");
-
-   console.log(output); // Still print to console
+   console.log(linesColor.join("\n"));// Still print to console
    ensureDirSync(folder)
-   Deno.writeTextFileSync(filePath, output); // Save to file
+   Deno.writeTextFileSync(filePath, linesPlain.join("\n")); // Save to file
 }
 
 var formatNumber = (num) => new Intl.NumberFormat("en-US").format(num);
