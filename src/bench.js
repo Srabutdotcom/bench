@@ -35,7 +35,7 @@ async function benchmarkAsync(name, fn, { warmup = 0, repeat = 1 } = {}) {
       timings.push(t1 - t0);
    }
 
-   return benchCore(name, timings)
+   return benchCore(name, valid, timings)
 }
 
 function benchmarkSync(name, fn, { warmup = 0, repeat = 1 } = {}) {
